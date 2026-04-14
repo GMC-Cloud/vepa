@@ -1,5 +1,5 @@
 VEPA — Configuratore Vetrate Panoramiche
-Benvenuto nel portale B2B VEPA per la configurazione e preventivazione di vetrate panoramiche.
+Benvenuto nel portale VEETEX Srl VEPA per la configurazione e preventivazione di vetrate panoramiche.
 ---
 Come accedere
 Indirizzo: https://veteex-cloud.github.io/vepa
