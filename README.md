@@ -2,7 +2,7 @@ VEPA — Configuratore Vetrate Panoramiche
 Benvenuto nel portale VEETEX Srl VEPA per la configurazione e preventivazione di vetrate panoramiche.
 ---
 Come accedere
-Indirizzo: https://veteex-cloud.github.io/vepa
+Indirizzo: https://veteex-cloud.github.io/vepa/configuratore.html
 Le credenziali di accesso (email e password) ti sono state fornite dal team VEPA.
 Se non le hai ricevute o hai dimenticato la password, usa il link "Password dimenticata?" nella pagina di accesso oppure contatta VEPA.
 ---
