@@ -2055,124 +2055,124 @@ body{padding:1cm;background:#fff;color:#000;font-family:'DM Sans',sans-serif;max
 ${contenuto}
 <button class="btn-stampa" onclick="window.print()" style="margin-top:1.5rem;">🖨 Stampa / Salva PDF</button>
 
+
+
+
 <script>
-// ── Auth check e salvataggio su DB ──────────────
-var _SU = 'https://fycbvtrxbldcxvrzfupz.supabase.co';
-var _SK = 'sb_publishable_Dziiq6UP2MXxphLaCyX-oA_WwH3orWj';
-var _ME = null;
+// VEPA Auth + DB
+var _SU='https://fycbvtrxbldcxvrzfupz.supabase.co';
+var _SK='sb_publishable_Dziiq6UP2MXxphLaCyX-oA_WwH3orWj';
+var _ME=null;
 
-(function() {
-  var sess = JSON.parse(localStorage.getItem('_vs')||'null');
-  if (!sess || !sess.access_token) {
-    window.location.href = 'index.html';
-    return;
-  }
-  _ME = sess.user || null;
-  // Carica profilo per sconto
-  fetch(_SU+'/rest/v1/profiles?select=*&id=eq.'+encodeURIComponent(sess.user.id), {
-    headers:{'apikey':_SK,'Authorization':'Bearer '+sess.access_token,'Accept':'application/vnd.pgrst.object+json'}
-  }).then(function(r){ return r.json(); }).then(function(p) {
-    if (p && p.sconto_perc > 0) {
-      _ME.sconto_perc = p.sconto_perc;
-      _ME.azienda = p.azienda || '';
+// 1. Verifica sessione
+var _sess=null;
+try{ _sess=JSON.parse(localStorage.getItem('_vs')||'null'); }catch(e){}
+if(!_sess||!_sess.access_token){
+  window.location.href='index.html';
+}else{
+  _ME=_sess.user||null;
+  // Carica sconto utente in background
+  fetch(_SU+'/rest/v1/profiles?select=sconto_perc,azienda&id=eq.'+encodeURIComponent(_sess.user.id),{
+    headers:{'apikey':_SK,'Authorization':'Bearer '+_sess.access_token,'Accept':'application/vnd.pgrst.object+json'}
+  }).then(function(r){return r.ok?r.json():null;}).then(function(p){
+    if(p&&p.sconto_perc>0){
+      _ME.sconto_perc=p.sconto_perc;
+      // Applica sconto ai prezzi
+      var mult=1-(p.sconto_perc/100);
+      ['anta_imp','anta_sco','profTrav','profBnc','fisso','angolo','antaExtra',
+       'aperturaCentrale','pomDoppio','serr','smTende','smTendeC','spTende',
+       'spTendeC','piano4','piano5'].forEach(function(k){
+        if(P&&P[k]) P[k]=+(P[k]*mult).toFixed(2);
+      });
     }
-  });
-})();
+  }).catch(function(){});
+}
 
-// Carica preventivo dal DB se c'e' ?id= nell'URL
-// Forza reinit se le regioni sono vuote (DOMContentLoaded già scattato)
-(function reinitIfEmpty() {
-  try {
-    var sr = document.getElementById('c-sel-reg');
-    if (sr && sr.options.length <= 1) {
-      initLoc();
-      try { aggiornaContatore(listaCarica().length); } catch(e) {}
-      try { calc(); } catch(e) {}
-      try { renderLista(); } catch(e) {}
-      try { renderPrev(); } catch(e) {}
-      try { caricaPrezziSalvati(); } catch(e) {}
-    }
-  } catch(e) { console.warn('reinit', e); }
-})();
-
-// Carica preventivo dal DB se c'e' ?id= nell'URL
-(function() {
-  var id = new URLSearchParams(window.location.search).get('id');
-  if (!id) return;
-  var sess = JSON.parse(localStorage.getItem('_vs')||'null');
-  fetch(_SU+'/rest/v1/preventivi?select=*&id=eq.'+encodeURIComponent(id), {
-    headers:{'apikey':_SK,'Authorization':'Bearer '+sess.access_token,'Accept':'application/vnd.pgrst.object+json'}
-  }).then(function(r){ return r.json(); }).then(function(data) {
-    if (!data || !data.dati) return;
-    var d = data.dati;
-    if (d.lista) { try{listaSalva(d.lista);}catch(e){} }
-    setTimeout(function() {
-      if (d.azienda) try{document.getElementById('prev-az').value=d.azienda;}catch(e){}
-      if (d.cliente) try{document.getElementById('prev-cli').value=d.cliente;}catch(e){}
-      if (d.numero)  try{document.getElementById('prev-num').value=d.numero;}catch(e){}
-      if (d.data)    try{document.getElementById('prev-data').value=d.data;}catch(e){}
-      if (d.note)    try{document.getElementById('prev-note').value=d.note;}catch(e){}
-      if (d.sconto!=null) try{document.getElementById('sconto').value=d.sconto;document.getElementById('sc-v').textContent=d.sconto+'%';}catch(e){}
+// 2. Carica preventivo da DB se ?id= presente
+var _urlId=new URLSearchParams(window.location.search).get('id');
+if(_urlId&&_sess){
+  fetch(_SU+'/rest/v1/preventivi?select=dati&id=eq.'+encodeURIComponent(_urlId),{
+    headers:{'apikey':_SK,'Authorization':'Bearer '+_sess.access_token,'Accept':'application/vnd.pgrst.object+json'}
+  }).then(function(r){return r.ok?r.json():null;}).then(function(data){
+    if(!data||!data.dati)return;
+    var d=data.dati;
+    if(d.lista) try{listaSalva(d.lista);}catch(e){}
+    setTimeout(function(){
+      if(d.azienda) try{document.getElementById('prev-az').value=d.azienda;}catch(e){}
+      if(d.cliente) try{document.getElementById('prev-cli').value=d.cliente;}catch(e){}
+      if(d.numero)  try{document.getElementById('prev-num').value=d.numero;}catch(e){}
+      if(d.data)    try{document.getElementById('prev-data').value=d.data;}catch(e){}
+      if(d.note)    try{document.getElementById('prev-note').value=d.note;}catch(e){}
+      if(d.sconto!=null) try{document.getElementById('sconto').value=d.sconto;document.getElementById('sc-v').textContent=d.sconto+'%';}catch(e){}
       try{renderLista();renderPrev();}catch(e){}
-    }, 500);
-  })();
-})();
+    },800);
+  }).catch(function(){});
+}
 
-// Override salvaPreventivo per salvare su DB
-function salvaPreventivo() {
-  var sess = JSON.parse(localStorage.getItem('_vs')||'null');
-  if (!sess || !_ME) { alert('Sessione scaduta. Riaccedi.'); window.location.href='index.html'; return; }
-  try {
-    var lista = listaCarica();
-    if (!lista.length) { alert('Aggiungi almeno un elemento.'); return; }
-    var az   = (document.getElementById('prev-az')&&document.getElementById('prev-az').value||'').trim();
-    var cli  = (document.getElementById('prev-cli')&&document.getElementById('prev-cli').value||'').trim();
-    var num  = (document.getElementById('prev-num')&&document.getElementById('prev-num').value||'001').trim();
-    var note = (document.getElementById('prev-note')&&document.getElementById('prev-note').value||'').trim();
-    var sc   = +(document.getElementById('sconto')&&document.getElementById('sconto').value||0);
-    var ivaR = +(document.getElementById('iva-sel')&&document.getElementById('iva-sel').value||0.10);
-    var cant = (function(){try{return JSON.parse(localStorage.getItem('vepa_cantiere_v1')||'{}');}catch(e){return{};}})();
-    var sub  = +lista.reduce(function(s,e){return s+e.subtot;},0).toFixed(2);
-    var imp  = +(sub*(1-sc/100)).toFixed(2);
-    var tot  = +(imp*(1+ivaR)).toFixed(2);
-    var mq   = 0;
-    lista.forEach(function(e){ if(e.S&&e.S.La) mq+=e.S.La/1000*e.S.Ha/1000*e.S.nL; else if(e.dati&&e.dati.mq) mq+=e.dati.mq; });
-    var payload = {
-      user_id: _ME.id, numero:num, azienda:az, cliente:cli,
-      cantiere: cant.com ? cant.com+(cant.prv?', '+cant.prv:'') : '',
-      sconto_perc:sc, iva_perc:ivaR*100, subtotale:sub, imponibile:imp, totale:tot,
-      mq_totali:+mq.toFixed(2), note:note,
+// 3. Retry initLoc se regioni vuote (con tentativi multipli)
+function _tryInitLoc(attempts){
+  try{
+    var sr=document.getElementById('c-sel-reg');
+    if(sr&&sr.options.length<=1){
+      initLoc();
+      try{aggiornaContatore(listaCarica().length);}catch(e){}
+      try{calc();}catch(e){}
+      try{renderLista();}catch(e){}
+      try{renderPrev();}catch(e){}
+      try{caricaPrezziSalvati();}catch(e){}
+    }
+  }catch(e){
+    if(attempts>0) setTimeout(function(){_tryInitLoc(attempts-1);},500);
+  }
+}
+setTimeout(function(){_tryInitLoc(5);},200);
+
+// 4. Override salvaPreventivo per salvare su DB
+salvaPreventivo=function(){
+  var sess=null;
+  try{sess=JSON.parse(localStorage.getItem('_vs')||'null');}catch(e){}
+  if(!sess||!_ME){alert('Sessione scaduta. Riaccedi.');window.location.href='index.html';return;}
+  try{
+    var lista=listaCarica();
+    if(!lista.length){alert('Aggiungi almeno un elemento.');return;}
+    var az=(document.getElementById('prev-az')&&document.getElementById('prev-az').value||'').trim();
+    var cli=(document.getElementById('prev-cli')&&document.getElementById('prev-cli').value||'').trim();
+    var num=(document.getElementById('prev-num')&&document.getElementById('prev-num').value||'001').trim();
+    var note=(document.getElementById('prev-note')&&document.getElementById('prev-note').value||'').trim();
+    var sc=+(document.getElementById('sconto')&&document.getElementById('sconto').value||0);
+    var ivaR=+(document.getElementById('iva-sel')&&document.getElementById('iva-sel').value||0.10);
+    var cant=(function(){try{return JSON.parse(localStorage.getItem('vepa_cantiere_v1')||'{}');}catch(e){return{};}})();
+    var sub=+lista.reduce(function(s,e){return s+e.subtot;},0).toFixed(2);
+    var imp=+(sub*(1-sc/100)).toFixed(2);
+    var tot=+(imp*(1+ivaR)).toFixed(2);
+    var mq=0;lista.forEach(function(e){if(e.S&&e.S.La)mq+=e.S.La/1000*e.S.Ha/1000*e.S.nL;else if(e.dati&&e.dati.mq)mq+=e.dati.mq;});
+    var payload={
+      user_id:_ME.id,numero:num,azienda:az,cliente:cli,
+      cantiere:cant.com?cant.com+(cant.prv?', '+cant.prv:''):'',
+      sconto_perc:sc,iva_perc:ivaR*100,subtotale:sub,imponibile:imp,totale:tot,
+      mq_totali:+mq.toFixed(2),note:note,
       dati:{azienda:az,cliente:cli,numero:num,
         data:(document.getElementById('prev-data')&&document.getElementById('prev-data').value||''),
         note:note,sconto:sc,ivaRate:ivaR,cantiere:cant,lista:lista}
     };
-    fetch(_SU+'/rest/v1/preventivi', {
+    fetch(_SU+'/rest/v1/preventivi',{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json','apikey':_SK,
-        'Authorization':'Bearer '+sess.access_token,
-        'Prefer':'resolution=merge-duplicates,return=minimal'
-      },
-      body: JSON.stringify(payload)
-    }).then(function(r) {
-      if (r.ok) {
-        var btns = document.querySelectorAll('[onclick="salvaPreventivo()"]');
-        btns.forEach(function(b){
-          var o=b.innerHTML; b.innerHTML='Salvato!'; b.style.background='#1a5c35'; b.style.color='#fff';
-          setTimeout(function(){ b.innerHTML=o; b.style.background=''; b.style.color=''; },2000);
+      headers:{'Content-Type':'application/json','apikey':_SK,'Authorization':'Bearer '+sess.access_token,'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify(payload)
+    }).then(function(r){
+      if(r.ok){
+        document.querySelectorAll('[onclick="salvaPreventivo()"]').forEach(function(b){
+          var o=b.innerHTML;b.innerHTML='Salvato!';b.style.background='#1a5c35';b.style.color='#fff';
+          setTimeout(function(){b.innerHTML=o;b.style.background='';b.style.color='';},2000);
         });
-        // Salva anche JSON locale
-        var jsonStr = JSON.stringify(payload.dati, null, 2);
-        var a = document.createElement('a');
-        a.href = 'data:application/json,' + encodeURIComponent(jsonStr);
-        a.download = (num||'preventivo')+'.vepa.json';
-        a.click();
-      } else {
-        r.json().then(function(e){ alert('Errore: '+JSON.stringify(e)); });
+        // Torna alla dashboard dopo 2s
+        setTimeout(function(){window.location.href='index.html';},2500);
+      }else{
+        r.json().then(function(e){alert('Errore: '+JSON.stringify(e));});
       }
     });
-  } catch(ex) { alert('Errore: '+ex.message); }
-}
+  }catch(ex){alert('Errore: '+ex.message);}
+};
 </script>
 
 </body>
@@ -3771,124 +3771,124 @@ caricaPrezziSalvati();
 </div>
 
 
+
+
+
 <script>
-// ── Auth check e salvataggio su DB ──────────────
-var _SU = 'https://fycbvtrxbldcxvrzfupz.supabase.co';
-var _SK = 'sb_publishable_Dziiq6UP2MXxphLaCyX-oA_WwH3orWj';
-var _ME = null;
+// VEPA Auth + DB
+var _SU='https://fycbvtrxbldcxvrzfupz.supabase.co';
+var _SK='sb_publishable_Dziiq6UP2MXxphLaCyX-oA_WwH3orWj';
+var _ME=null;
 
-(function() {
-  var sess = JSON.parse(localStorage.getItem('_vs')||'null');
-  if (!sess || !sess.access_token) {
-    window.location.href = 'index.html';
-    return;
-  }
-  _ME = sess.user || null;
-  // Carica profilo per sconto
-  fetch(_SU+'/rest/v1/profiles?select=*&id=eq.'+encodeURIComponent(sess.user.id), {
-    headers:{'apikey':_SK,'Authorization':'Bearer '+sess.access_token,'Accept':'application/vnd.pgrst.object+json'}
-  }).then(function(r){ return r.json(); }).then(function(p) {
-    if (p && p.sconto_perc > 0) {
-      _ME.sconto_perc = p.sconto_perc;
-      _ME.azienda = p.azienda || '';
+// 1. Verifica sessione
+var _sess=null;
+try{ _sess=JSON.parse(localStorage.getItem('_vs')||'null'); }catch(e){}
+if(!_sess||!_sess.access_token){
+  window.location.href='index.html';
+}else{
+  _ME=_sess.user||null;
+  // Carica sconto utente in background
+  fetch(_SU+'/rest/v1/profiles?select=sconto_perc,azienda&id=eq.'+encodeURIComponent(_sess.user.id),{
+    headers:{'apikey':_SK,'Authorization':'Bearer '+_sess.access_token,'Accept':'application/vnd.pgrst.object+json'}
+  }).then(function(r){return r.ok?r.json():null;}).then(function(p){
+    if(p&&p.sconto_perc>0){
+      _ME.sconto_perc=p.sconto_perc;
+      // Applica sconto ai prezzi
+      var mult=1-(p.sconto_perc/100);
+      ['anta_imp','anta_sco','profTrav','profBnc','fisso','angolo','antaExtra',
+       'aperturaCentrale','pomDoppio','serr','smTende','smTendeC','spTende',
+       'spTendeC','piano4','piano5'].forEach(function(k){
+        if(P&&P[k]) P[k]=+(P[k]*mult).toFixed(2);
+      });
     }
-  });
-})();
+  }).catch(function(){});
+}
 
-// Carica preventivo dal DB se c'e' ?id= nell'URL
-// Forza reinit se le regioni sono vuote (DOMContentLoaded già scattato)
-(function reinitIfEmpty() {
-  try {
-    var sr = document.getElementById('c-sel-reg');
-    if (sr && sr.options.length <= 1) {
-      initLoc();
-      try { aggiornaContatore(listaCarica().length); } catch(e) {}
-      try { calc(); } catch(e) {}
-      try { renderLista(); } catch(e) {}
-      try { renderPrev(); } catch(e) {}
-      try { caricaPrezziSalvati(); } catch(e) {}
-    }
-  } catch(e) { console.warn('reinit', e); }
-})();
-
-// Carica preventivo dal DB se c'e' ?id= nell'URL
-(function() {
-  var id = new URLSearchParams(window.location.search).get('id');
-  if (!id) return;
-  var sess = JSON.parse(localStorage.getItem('_vs')||'null');
-  fetch(_SU+'/rest/v1/preventivi?select=*&id=eq.'+encodeURIComponent(id), {
-    headers:{'apikey':_SK,'Authorization':'Bearer '+sess.access_token,'Accept':'application/vnd.pgrst.object+json'}
-  }).then(function(r){ return r.json(); }).then(function(data) {
-    if (!data || !data.dati) return;
-    var d = data.dati;
-    if (d.lista) { try{listaSalva(d.lista);}catch(e){} }
-    setTimeout(function() {
-      if (d.azienda) try{document.getElementById('prev-az').value=d.azienda;}catch(e){}
-      if (d.cliente) try{document.getElementById('prev-cli').value=d.cliente;}catch(e){}
-      if (d.numero)  try{document.getElementById('prev-num').value=d.numero;}catch(e){}
-      if (d.data)    try{document.getElementById('prev-data').value=d.data;}catch(e){}
-      if (d.note)    try{document.getElementById('prev-note').value=d.note;}catch(e){}
-      if (d.sconto!=null) try{document.getElementById('sconto').value=d.sconto;document.getElementById('sc-v').textContent=d.sconto+'%';}catch(e){}
+// 2. Carica preventivo da DB se ?id= presente
+var _urlId=new URLSearchParams(window.location.search).get('id');
+if(_urlId&&_sess){
+  fetch(_SU+'/rest/v1/preventivi?select=dati&id=eq.'+encodeURIComponent(_urlId),{
+    headers:{'apikey':_SK,'Authorization':'Bearer '+_sess.access_token,'Accept':'application/vnd.pgrst.object+json'}
+  }).then(function(r){return r.ok?r.json():null;}).then(function(data){
+    if(!data||!data.dati)return;
+    var d=data.dati;
+    if(d.lista) try{listaSalva(d.lista);}catch(e){}
+    setTimeout(function(){
+      if(d.azienda) try{document.getElementById('prev-az').value=d.azienda;}catch(e){}
+      if(d.cliente) try{document.getElementById('prev-cli').value=d.cliente;}catch(e){}
+      if(d.numero)  try{document.getElementById('prev-num').value=d.numero;}catch(e){}
+      if(d.data)    try{document.getElementById('prev-data').value=d.data;}catch(e){}
+      if(d.note)    try{document.getElementById('prev-note').value=d.note;}catch(e){}
+      if(d.sconto!=null) try{document.getElementById('sconto').value=d.sconto;document.getElementById('sc-v').textContent=d.sconto+'%';}catch(e){}
       try{renderLista();renderPrev();}catch(e){}
-    }, 500);
-  })();
-})();
+    },800);
+  }).catch(function(){});
+}
 
-// Override salvaPreventivo per salvare su DB
-function salvaPreventivo() {
-  var sess = JSON.parse(localStorage.getItem('_vs')||'null');
-  if (!sess || !_ME) { alert('Sessione scaduta. Riaccedi.'); window.location.href='index.html'; return; }
-  try {
-    var lista = listaCarica();
-    if (!lista.length) { alert('Aggiungi almeno un elemento.'); return; }
-    var az   = (document.getElementById('prev-az')&&document.getElementById('prev-az').value||'').trim();
-    var cli  = (document.getElementById('prev-cli')&&document.getElementById('prev-cli').value||'').trim();
-    var num  = (document.getElementById('prev-num')&&document.getElementById('prev-num').value||'001').trim();
-    var note = (document.getElementById('prev-note')&&document.getElementById('prev-note').value||'').trim();
-    var sc   = +(document.getElementById('sconto')&&document.getElementById('sconto').value||0);
-    var ivaR = +(document.getElementById('iva-sel')&&document.getElementById('iva-sel').value||0.10);
-    var cant = (function(){try{return JSON.parse(localStorage.getItem('vepa_cantiere_v1')||'{}');}catch(e){return{};}})();
-    var sub  = +lista.reduce(function(s,e){return s+e.subtot;},0).toFixed(2);
-    var imp  = +(sub*(1-sc/100)).toFixed(2);
-    var tot  = +(imp*(1+ivaR)).toFixed(2);
-    var mq   = 0;
-    lista.forEach(function(e){ if(e.S&&e.S.La) mq+=e.S.La/1000*e.S.Ha/1000*e.S.nL; else if(e.dati&&e.dati.mq) mq+=e.dati.mq; });
-    var payload = {
-      user_id: _ME.id, numero:num, azienda:az, cliente:cli,
-      cantiere: cant.com ? cant.com+(cant.prv?', '+cant.prv:'') : '',
-      sconto_perc:sc, iva_perc:ivaR*100, subtotale:sub, imponibile:imp, totale:tot,
-      mq_totali:+mq.toFixed(2), note:note,
+// 3. Retry initLoc se regioni vuote (con tentativi multipli)
+function _tryInitLoc(attempts){
+  try{
+    var sr=document.getElementById('c-sel-reg');
+    if(sr&&sr.options.length<=1){
+      initLoc();
+      try{aggiornaContatore(listaCarica().length);}catch(e){}
+      try{calc();}catch(e){}
+      try{renderLista();}catch(e){}
+      try{renderPrev();}catch(e){}
+      try{caricaPrezziSalvati();}catch(e){}
+    }
+  }catch(e){
+    if(attempts>0) setTimeout(function(){_tryInitLoc(attempts-1);},500);
+  }
+}
+setTimeout(function(){_tryInitLoc(5);},200);
+
+// 4. Override salvaPreventivo per salvare su DB
+salvaPreventivo=function(){
+  var sess=null;
+  try{sess=JSON.parse(localStorage.getItem('_vs')||'null');}catch(e){}
+  if(!sess||!_ME){alert('Sessione scaduta. Riaccedi.');window.location.href='index.html';return;}
+  try{
+    var lista=listaCarica();
+    if(!lista.length){alert('Aggiungi almeno un elemento.');return;}
+    var az=(document.getElementById('prev-az')&&document.getElementById('prev-az').value||'').trim();
+    var cli=(document.getElementById('prev-cli')&&document.getElementById('prev-cli').value||'').trim();
+    var num=(document.getElementById('prev-num')&&document.getElementById('prev-num').value||'001').trim();
+    var note=(document.getElementById('prev-note')&&document.getElementById('prev-note').value||'').trim();
+    var sc=+(document.getElementById('sconto')&&document.getElementById('sconto').value||0);
+    var ivaR=+(document.getElementById('iva-sel')&&document.getElementById('iva-sel').value||0.10);
+    var cant=(function(){try{return JSON.parse(localStorage.getItem('vepa_cantiere_v1')||'{}');}catch(e){return{};}})();
+    var sub=+lista.reduce(function(s,e){return s+e.subtot;},0).toFixed(2);
+    var imp=+(sub*(1-sc/100)).toFixed(2);
+    var tot=+(imp*(1+ivaR)).toFixed(2);
+    var mq=0;lista.forEach(function(e){if(e.S&&e.S.La)mq+=e.S.La/1000*e.S.Ha/1000*e.S.nL;else if(e.dati&&e.dati.mq)mq+=e.dati.mq;});
+    var payload={
+      user_id:_ME.id,numero:num,azienda:az,cliente:cli,
+      cantiere:cant.com?cant.com+(cant.prv?', '+cant.prv:''):'',
+      sconto_perc:sc,iva_perc:ivaR*100,subtotale:sub,imponibile:imp,totale:tot,
+      mq_totali:+mq.toFixed(2),note:note,
       dati:{azienda:az,cliente:cli,numero:num,
         data:(document.getElementById('prev-data')&&document.getElementById('prev-data').value||''),
         note:note,sconto:sc,ivaRate:ivaR,cantiere:cant,lista:lista}
     };
-    fetch(_SU+'/rest/v1/preventivi', {
+    fetch(_SU+'/rest/v1/preventivi',{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json','apikey':_SK,
-        'Authorization':'Bearer '+sess.access_token,
-        'Prefer':'resolution=merge-duplicates,return=minimal'
-      },
-      body: JSON.stringify(payload)
-    }).then(function(r) {
-      if (r.ok) {
-        var btns = document.querySelectorAll('[onclick="salvaPreventivo()"]');
-        btns.forEach(function(b){
-          var o=b.innerHTML; b.innerHTML='Salvato!'; b.style.background='#1a5c35'; b.style.color='#fff';
-          setTimeout(function(){ b.innerHTML=o; b.style.background=''; b.style.color=''; },2000);
+      headers:{'Content-Type':'application/json','apikey':_SK,'Authorization':'Bearer '+sess.access_token,'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify(payload)
+    }).then(function(r){
+      if(r.ok){
+        document.querySelectorAll('[onclick="salvaPreventivo()"]').forEach(function(b){
+          var o=b.innerHTML;b.innerHTML='Salvato!';b.style.background='#1a5c35';b.style.color='#fff';
+          setTimeout(function(){b.innerHTML=o;b.style.background='';b.style.color='';},2000);
         });
-        // Salva anche JSON locale
-        var jsonStr = JSON.stringify(payload.dati, null, 2);
-        var a = document.createElement('a');
-        a.href = 'data:application/json,' + encodeURIComponent(jsonStr);
-        a.download = (num||'preventivo')+'.vepa.json';
-        a.click();
-      } else {
-        r.json().then(function(e){ alert('Errore: '+JSON.stringify(e)); });
+        // Torna alla dashboard dopo 2s
+        setTimeout(function(){window.location.href='index.html';},2500);
+      }else{
+        r.json().then(function(e){alert('Errore: '+JSON.stringify(e));});
       }
     });
-  } catch(ex) { alert('Errore: '+ex.message); }
-}
+  }catch(ex){alert('Errore: '+ex.message);}
+};
 </script>
 
 </body>
