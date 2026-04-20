@@ -2080,22 +2080,23 @@ var _ME = null;
 })();
 
 // Carica preventivo dal DB se c'e' ?id= nell'URL
-window.addEventListener('DOMContentLoaded', function() {
-  // Forza ripopolamento select regione se vuoto (fix per browser che non eseguono INIT correttamente)
-  setTimeout(function() {
-    try {
-      var sr = document.getElementById('c-sel-reg');
-      if (sr && sr.options.length <= 1) {
-        initLoc();
-        aggiornaContatore(listaCarica().length);
-        calc();
-        renderLista();
-        renderPrev();
-        caricaPrezziSalvati();
-      }
-    } catch(e) { console.warn('reinit', e); }
-  }, 300);
+// Forza reinit se le regioni sono vuote (DOMContentLoaded già scattato)
+(function reinitIfEmpty() {
+  try {
+    var sr = document.getElementById('c-sel-reg');
+    if (sr && sr.options.length <= 1) {
+      initLoc();
+      try { aggiornaContatore(listaCarica().length); } catch(e) {}
+      try { calc(); } catch(e) {}
+      try { renderLista(); } catch(e) {}
+      try { renderPrev(); } catch(e) {}
+      try { caricaPrezziSalvati(); } catch(e) {}
+    }
+  } catch(e) { console.warn('reinit', e); }
+})();
 
+// Carica preventivo dal DB se c'e' ?id= nell'URL
+(function() {
   var id = new URLSearchParams(window.location.search).get('id');
   if (!id) return;
   var sess = JSON.parse(localStorage.getItem('_vs')||'null');
@@ -2114,8 +2115,8 @@ window.addEventListener('DOMContentLoaded', function() {
       if (d.sconto!=null) try{document.getElementById('sconto').value=d.sconto;document.getElementById('sc-v').textContent=d.sconto+'%';}catch(e){}
       try{renderLista();renderPrev();}catch(e){}
     }, 500);
-  });
-});
+  })();
+})();
 
 // Override salvaPreventivo per salvare su DB
 function salvaPreventivo() {
@@ -3795,22 +3796,23 @@ var _ME = null;
 })();
 
 // Carica preventivo dal DB se c'e' ?id= nell'URL
-window.addEventListener('DOMContentLoaded', function() {
-  // Forza ripopolamento select regione se vuoto (fix per browser che non eseguono INIT correttamente)
-  setTimeout(function() {
-    try {
-      var sr = document.getElementById('c-sel-reg');
-      if (sr && sr.options.length <= 1) {
-        initLoc();
-        aggiornaContatore(listaCarica().length);
-        calc();
-        renderLista();
-        renderPrev();
-        caricaPrezziSalvati();
-      }
-    } catch(e) { console.warn('reinit', e); }
-  }, 300);
+// Forza reinit se le regioni sono vuote (DOMContentLoaded già scattato)
+(function reinitIfEmpty() {
+  try {
+    var sr = document.getElementById('c-sel-reg');
+    if (sr && sr.options.length <= 1) {
+      initLoc();
+      try { aggiornaContatore(listaCarica().length); } catch(e) {}
+      try { calc(); } catch(e) {}
+      try { renderLista(); } catch(e) {}
+      try { renderPrev(); } catch(e) {}
+      try { caricaPrezziSalvati(); } catch(e) {}
+    }
+  } catch(e) { console.warn('reinit', e); }
+})();
 
+// Carica preventivo dal DB se c'e' ?id= nell'URL
+(function() {
   var id = new URLSearchParams(window.location.search).get('id');
   if (!id) return;
   var sess = JSON.parse(localStorage.getItem('_vs')||'null');
@@ -3829,8 +3831,8 @@ window.addEventListener('DOMContentLoaded', function() {
       if (d.sconto!=null) try{document.getElementById('sconto').value=d.sconto;document.getElementById('sc-v').textContent=d.sconto+'%';}catch(e){}
       try{renderLista();renderPrev();}catch(e){}
     }, 500);
-  });
-});
+  })();
+})();
 
 // Override salvaPreventivo per salvare su DB
 function salvaPreventivo() {
