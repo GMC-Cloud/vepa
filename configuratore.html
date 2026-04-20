@@ -3518,6 +3518,33 @@ if(!_sess||!_sess.access_token){
   }).catch(function(){});
 }
 
+// 1b. Assicura che initLoc sia chiamata anche se il redirect non è avvenuto
+(function() {
+  try {
+    var sr = document.getElementById('c-sel-reg');
+    if (sr && sr.options.length <= 1) {
+      initLoc();
+      try{aggiornaContatore(listaCarica().length);}catch(e){}
+      try{calc();}catch(e){}
+      try{renderLista();}catch(e){}
+      try{renderPrev();}catch(e){}
+      try{caricaPrezziSalvati();}catch(e){}
+    }
+  } catch(e) { console.warn('initLoc retry', e); }
+  // Secondo tentativo dopo 400ms (alcuni browser lenti)
+  setTimeout(function() {
+    try {
+      var sr = document.getElementById('c-sel-reg');
+      if (sr && sr.options.length <= 1) {
+        initLoc();
+        try{calc();}catch(e){}
+        try{renderLista();}catch(e){}
+        try{renderPrev();}catch(e){}
+      }
+    } catch(e) {}
+  }, 400);
+})();
+
 // 2. Carica preventivo da DB se ?id= presente
 var _urlId=new URLSearchParams(window.location.search).get('id');
 if(_urlId&&_sess){
