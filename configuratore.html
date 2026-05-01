@@ -3251,7 +3251,16 @@ function renderPrev(){
   // Dati aziendali personalizzati dal localStorage
   var _datiAz = {}; try { _datiAz = JSON.parse(localStorage.getItem('_vepa_dati_az')||'{}'); } catch(e) {}
   var _logo      = localStorage.getItem('_vepa_logo') || '';
-  var _ragione   = _datiAz.ragione || az || '';
+  // Fallback: _vepa_dati_az → campo prev-az → _vepa_prefs.azienda → LS_AZIENDA
+  var _ragione = _datiAz.ragione || az || (function(){
+    try {
+      var p = JSON.parse(localStorage.getItem('_vepa_prefs')||'{}');
+      if (p.azienda && p.azienda.trim()) return p.azienda.trim();
+      var ls = localStorage.getItem('vepa_azienda_v1');
+      if (ls && ls.trim()) return ls.trim();
+    } catch(e) {}
+    return '';
+  })();
   var _piva      = _datiAz.piva    ? 'P.IVA ' + _datiAz.piva : '';
   var _indir     = _datiAz.indirizzo || '';
   var _telAz     = _datiAz.tel   || '';
@@ -3259,7 +3268,7 @@ function renderPrev(){
   var _webAz     = _datiAz.web   || '';
 
   var _logoHtml = _logo
-    ? `<img src="${_logo}" style="max-height:70px;max-width:180px;object-fit:contain;display:block;margin-bottom:4px;">`
+    ? `<img src="${_logo}" style="max-height:120px;max-width:260px;object-fit:contain;display:block;margin-bottom:6px;">`
     : '';
   var _aziendaHtml = `
     ${_logoHtml}
@@ -3413,7 +3422,7 @@ function renderPrev(){
 
   // Condizioni di vendita
   if (document.getElementById('chk-condizioni') && document.getElementById('chk-condizioni').checked) {
-    html += `<div style="margin-top:2rem;padding-top:1rem;border-top:2px solid #ccc;page-break-before:always;" class="condizioni-vendita">
+    html += `<div style="margin-top:2rem;padding-top:1rem;border-top:2px solid #ccc;" class="condizioni-vendita">
       <div style="font-family:monospace;font-size:10px;font-weight:700;letter-spacing:.08em;color:#444;margin-bottom:.5rem;text-transform:uppercase;">Condizioni Generali di Vendita — B4C S.r.l.</div>
       <table style="width:100%;border-collapse:collapse;font-size:7.5px;">
         <tbody>
@@ -3623,6 +3632,11 @@ function salvaDatiAzienda(){
     if(el) dati[k]=el.value.trim();
   });
   localStorage.setItem('_vepa_dati_az',JSON.stringify(dati));
+  // Aggiorna anche i campi usati da renderPrev come fallback
+  var azField = document.getElementById('prev-az');
+  if(azField && dati.ragione) azField.value = dati.ragione;
+  var laField = localStorage.getItem('vepa_azienda_v1');
+  if(dati.ragione) localStorage.setItem('vepa_azienda_v1', dati.ragione);
   chiudiModal(null,'azienda');
   renderPrev();
 }
