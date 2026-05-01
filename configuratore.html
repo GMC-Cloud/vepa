@@ -2272,6 +2272,12 @@ function stampa(tabId, modalita){
         '</div>';
       const footer=document.getElementById('print-footer-prev');
       if(footer&&footer.innerHTML) contenuto+='<div style="margin-top:2rem;padding-top:.75rem;border-top:1px solid #ccc;font-size:10px;color:#888;font-family:monospace;">'+footer.innerHTML+'</div>';
+      // Condizioni di vendita nel riepilogo
+      const chkCR=document.getElementById('chk-condizioni');
+      const condElR=document.querySelector('.condizioni-vendita');
+      if(chkCR&&chkCR.checked&&condElR){
+        contenuto+=condElR.outerHTML;
+      }
 
     } else {
       // Versione dettagliata completa
