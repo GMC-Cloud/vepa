@@ -3257,14 +3257,15 @@ function renderPrev(){
   // Dati aziendali personalizzati dal localStorage
   var _datiAz = {}; try { _datiAz = JSON.parse(localStorage.getItem('_vepa_dati_az')||'{}'); } catch(e) {}
   var _logo      = localStorage.getItem('_vepa_logo') || '';
-  // Fallback: _vepa_dati_az → campo prev-az → _vepa_prefs.azienda → LS_AZIENDA
-  var _ragione = _datiAz.ragione || az || (function(){
+  // Fallback: _vepa_dati_az → _vepa_prefs.azienda → vepa_azienda_v1 → prev-az
+  var _ragione = _datiAz.ragione || (function(){
     try {
       var p = JSON.parse(localStorage.getItem('_vepa_prefs')||'{}');
       if (p.azienda && p.azienda.trim()) return p.azienda.trim();
-      var ls = localStorage.getItem('vepa_azienda_v1');
-      if (ls && ls.trim()) return ls.trim();
     } catch(e) {}
+    var ls = localStorage.getItem('vepa_azienda_v1');
+    if (ls && ls.trim()) return ls.trim();
+    if (az && az !== '—') return az;
     return '';
   })();
   var _piva      = _datiAz.piva    ? 'P.IVA ' + _datiAz.piva : '';
@@ -3599,10 +3600,25 @@ var righeMap = {
 function apriAzienda(){
   var dati={};
   try{dati=JSON.parse(localStorage.getItem('_vepa_dati_az')||'{}');}catch(e){}
+  // Fallback ragione: prev-az → vepa_azienda_v1 → _vepa_prefs.azienda
+  if(!dati.ragione){
+    var azField=document.getElementById('prev-az');
+    if(azField && azField.value.trim() && azField.value.trim()!=='—') dati.ragione=azField.value.trim();
+  }
+  if(!dati.ragione){
+    var ls=localStorage.getItem('vepa_azienda_v1');
+    if(ls && ls.trim()) dati.ragione=ls.trim();
+  }
+  if(!dati.ragione){
+    try{
+      var p=JSON.parse(localStorage.getItem('_vepa_prefs')||'{}');
+      if(p.azienda) dati.ragione=p.azienda;
+    }catch(e){}
+  }
   var logo=localStorage.getItem('_vepa_logo')||'';
   var prev=document.getElementById('az-logo-preview');
   if(prev) prev.innerHTML=logo
-    ? '<img src="'+logo+'" style="max-height:70px;max-width:200px;border:1px solid #eee;border-radius:3px;padding:3px;">'
+    ? '<img src="'+logo+'" style="max-height:120px;max-width:260px;border:1px solid #eee;border-radius:3px;padding:3px;">'
     : '<span style="font-size:11px;color:var(--hint);">Nessun logo caricato</span>';
   ['ragione','piva','indirizzo','tel','email','web','iban','cf','note'].forEach(function(k){
     var el=document.getElementById('az-'+k);
@@ -3640,7 +3656,7 @@ function salvaDatiAzienda(){
   localStorage.setItem('_vepa_dati_az',JSON.stringify(dati));
   // Aggiorna anche i campi usati da renderPrev come fallback
   var azField = document.getElementById('prev-az');
-  if(azField && dati.ragione) azField.value = dati.ragione;
+  if(azField && dati.ragione) { azField.value = dati.ragione; }
   var laField = localStorage.getItem('vepa_azienda_v1');
   if(dati.ragione) localStorage.setItem('vepa_azienda_v1', dati.ragione);
   chiudiModal(null,'azienda');
@@ -4155,6 +4171,14 @@ _try('renderLista', function(){ renderLista(); });
 _try('renderPrev', function(){ renderPrev(); });
 _try('caricaPrezziSalvati', function(){ caricaPrezziSalvati(); });
 _try('azienda', function(){ const az=localStorage.getItem(LS_AZIENDA); if(az){ document.getElementById('prev-az').value=az; renderPrev(); } });
+_try('dati-az', function(){
+  var d={}; try{d=JSON.parse(localStorage.getItem('_vepa_dati_az')||'{}');}catch(e){}
+  if(d.ragione && d.ragione.trim()){
+    var f=document.getElementById('prev-az');
+    if(f && !f.value.trim()) f.value=d.ragione.trim();
+    renderPrev();
+  }
+});
 console.log('[VEPA] INIT END - errori:', _initErrors.length);
 if(_initErrors.length > 0) {
   // Mostra errori in pagina
