@@ -189,48 +189,6 @@ input[type=password]::-webkit-credentials-auto-fill-button { display: none !impo
       <div id="listino-msg" style="font-size:12px;margin-top:.4rem;min-height:16px;"></div>
     </div>
   </div>
-
-  <!-- ── PANNELLO IMPOSTAZIONI ────────────────────── -->
-  <div id="p-impostazioni" class="panel" style="display:none;">
-    <div class="panel-header">
-      <div class="panel-title">⚙ Impostazioni profilo</div>
-    </div>
-    <div style="max-width:700px;">
-
-      <!-- Logo aziendale -->
-      <div style="background:#fff;border:1px solid #ccc;border-radius:4px;padding:1rem;margin-bottom:.75rem;">
-        <div style="font-family:monospace;font-size:11px;font-weight:600;color:#555;margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.06em;">Logo aziendale</div>
-        <div id="logo-preview" style="margin-bottom:.5rem;min-height:20px;"></div>
-        <label style="display:inline-block;padding:6px 14px;background:#f7f5f1;border:1px solid #ccc;border-radius:3px;font-size:12px;cursor:pointer;">
-          📎 Carica logo (max 500 KB)
-          <input type="file" accept="image/*" style="display:none;" onchange="caricaLogo(this)">
-        </label>
-        <div style="font-size:11px;color:#888;margin-top:.35rem;">PNG o SVG consigliati — apparirà nell'intestazione del preventivo</div>
-      </div>
-
-      <!-- Dati aziendali -->
-      <div style="background:#fff;border:1px solid #ccc;border-radius:4px;padding:1rem;margin-bottom:.75rem;">
-        <div style="font-family:monospace;font-size:11px;font-weight:600;color:#555;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.06em;">Dati aziendali</div>
-        <div class="form2">
-          <div class="lf"><label>Ragione sociale</label><input type="text" id="imp-ragione" class="linput" placeholder="B4C S.r.l."></div>
-          <div class="lf"><label>P. IVA</label><input type="text" id="imp-piva" class="linput" placeholder="03043140908"></div>
-          <div class="lf"><label>Codice fiscale</label><input type="text" id="imp-cf" class="linput" placeholder="03043140908"></div>
-          <div class="lf"><label>Indirizzo</label><input type="text" id="imp-indirizzo" class="linput" placeholder="Via Taramelli 6, 07100 Sassari"></div>
-          <div class="lf"><label>Telefono</label><input type="text" id="imp-tel" class="linput" placeholder="+39 079 ..."></div>
-          <div class="lf"><label>Email</label><input type="email" id="imp-email" class="linput" placeholder="info@b4csrl.it"></div>
-          <div class="lf"><label>Sito web</label><input type="text" id="imp-web" class="linput" placeholder="www.b4c-srl.it"></div>
-          <div class="lf"><label>IBAN</label><input type="text" id="imp-iban" class="linput" placeholder="IT..."></div>
-        </div>
-        <div class="lf" style="margin-top:.5rem;"><label>Note aggiuntive</label>
-          <textarea id="imp-note" class="linput" rows="2" style="resize:vertical;" placeholder="Es. Registro Imprese SS n° ..."></textarea>
-        </div>
-      </div>
-
-      <button class="btn prim" onclick="salvaImpostazioni()" style="padding:9px 20px;font-size:13px;">💾 Salva impostazioni</button>
-      <button class="btn" onclick="show('prev')" style="margin-left:.5rem;">← Torna ai preventivi</button>
-    </div>
-  </div>
-
 </div>
 
 <script>
@@ -323,7 +281,7 @@ async function doReset() {
 async function loadProfile(uid, email) {
   try {
     // Query esplicita con tutti i campi necessari
-    var r = await sf('/rest/v1/profiles?select=id,email,ruolo,sconto_perc,azienda,referente,regione_default,attivo&id=eq.'+encodeURIComponent(uid), {
+    var r = await sf('/rest/v1/profiles?select=id,email,ruolo,sconto_perc,azienda,referente,regione_default,attivo,telefono&id=eq.'+encodeURIComponent(uid), {
       headers: {'Accept': 'application/vnd.pgrst.object+json'}
     });
     var d = await r.json();
@@ -487,7 +445,7 @@ async function delPrev(btn) {
 }
 
 async function loadAdmUsers() {
-  var data = await dbGet('profiles', null);
+  var data = await dbGet('profiles?select=id,email,ruolo,sconto_perc,azienda,referente,attivo,telefono', null);
   if (!Array.isArray(data)) return;
   document.getElementById('users-list').innerHTML = data.map(function(u) {
     return '<div class="ucard">'+
@@ -496,6 +454,8 @@ async function loadAdmUsers() {
         '<div style="font-size:11px;color:#888;">'+esc(u.referente||'')+'</div></div>'+
       '<div><label style="font-size:10px;display:block;">Referente</label>'+
         '<input type="text" id="ref-'+u.id+'" value="'+esc(u.referente||'')+'" placeholder="Nome Cognome" style="width:120px;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:12px;"></div>'+
+      '<div><label style="font-size:10px;display:block;">Telefono</label>'+
+        '<input type="text" id="tel-'+u.id+'" value="'+esc(u.telefono||'')+'" placeholder="+39 ..." style="width:120px;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:12px;"></div>'+
       '<div><label style="font-size:10px;display:block;">Sconto %</label>'+
         '<input type="number" id="sc-'+u.id+'" value="'+(+u.sconto_perc||0)+'" min="0" max="50" step="0.5" style="width:70px;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:12px;"></div>'+
       '<div><label style="font-size:10px;display:block;">Ruolo</label>'+
@@ -515,7 +475,8 @@ async function saveUser(btn) {
   var sc=+(document.getElementById('sc-'+id).value||0);
   var ru=document.getElementById('ru-'+id).value;
   var ref=document.getElementById('ref-'+id)&&document.getElementById('ref-'+id).value||'';
-  await dbPatch('profiles',{sconto_perc:sc,ruolo:ru,referente:ref},{id:id});
+  var tel=document.getElementById('tel-'+id)&&document.getElementById('tel-'+id).value||'';
+  await dbPatch('profiles',{sconto_perc:sc,ruolo:ru,referente:ref,telefono:tel},{id:id});
   loadAdmUsers();
 }
 
