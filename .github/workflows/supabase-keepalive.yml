@@ -1,0 +1,34 @@
+name: Supabase Keep-Alive
+
+# Esegue una query leggera al database Supabase ogni 3 giorni
+# per evitare che il progetto venga messo in pausa per inattività
+# (il piano free mette in pausa i progetti dopo un periodo senza attività).
+
+on:
+  schedule:
+    # Ogni 3 giorni alle 06:00 UTC
+    - cron: '0 6 */3 * *'
+  workflow_dispatch: {}  # permette anche l'avvio manuale da GitHub
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase (SELECT leggera sulla tabella listino)
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${SUPABASE_URL}/rest/v1/listino?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+
+          echo "Risposta Supabase: HTTP $response"
+
+          if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
+            echo "✅ Progetto attivo, keep-alive riuscito."
+          else
+            echo "⚠️ Risposta inattesa da Supabase (HTTP $response)."
+            exit 1
+          fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
